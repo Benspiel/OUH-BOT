@@ -40,4 +40,4 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-#bot.run("MTI4NTMxNDI2MTc4NjAzODM3Ng.GOtxGx.IYGRSmgHCpt-YHOqjnSfLQ19xHWlf7-wVaXIMA
+

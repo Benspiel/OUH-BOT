@@ -1,0 +1,3 @@
+# Format: cogname:role_id
+clear:1297585996464128163
+say:1297585996464128163

@@ -8,7 +8,7 @@ from datetime import datetime
 class TicketSystem(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.db_path = os.path.join(os.path.dirname(__file__), 'tickets.db')
+        self.db_path = os.path.join(os.path.dirname(__file__), 'ticket.db')
         self._initialize_db()
 
         # Konfiguration
@@ -21,7 +21,7 @@ class TicketSystem(commands.Cog):
         """Datenbank initialisieren"""
         try:
             with sqlite3.connect(self.db_path) as conn:
-                conn.execute('''CREATE TABLE IF NOT EXISTS tickets
+                conn.execute('''CREATE TABLE IF NOT EXISTS einbuergerung
                             (channel_id INTEGER PRIMARY KEY,
                              user_id INTEGER NOT NULL,
                              staff_id INTEGER,
@@ -35,23 +35,17 @@ class TicketSystem(commands.Cog):
     async def _update_ticket_message(self, channel):
         """Aktualisiert die Ticket-Nachricht im Ziel-Channel"""
         try:
-            # Lösche alle vorhandenen Nachrichten
             await channel.purge()
-
-            # Erstelle das Embed
             embed = discord.Embed(
                 title="🏛️ Einbürgerung beantragen",
                 description="Klicke auf den Button, um ein privates Ticket zu erstellen.",
                 color=discord.Color.green()
             )
-
-            # Sende die Nachricht mit dem Button
             message = await channel.send(
                 embed=embed,
-                view=self.TicketButtonView(self)  # Korrekte Referenzierung
+                view=self.TicketButtonView(self)
             )
             self.ticket_message_id = message.id
-
         except Exception as e:
             print(f"Fehler beim Aktualisieren der Ticket-Nachricht: {e}")
 
@@ -63,7 +57,6 @@ class TicketSystem(commands.Cog):
         @ui.button(label="Einbürgern", style=discord.ButtonStyle.green, custom_id="ticket_button")
         async def create_ticket(self, interaction: discord.Interaction, button: ui.Button):
             try:
-                # Channel erstellen
                 category = interaction.guild.get_channel(self.cog.ticket_category_id)
                 if not category:
                     await interaction.response.send_message("❌ Ticket-Kategorie nicht gefunden!", ephemeral=True)
@@ -79,14 +72,12 @@ class TicketSystem(commands.Cog):
                     }
                 )
 
-                # Ticket-Nachricht erstellen
                 embed = discord.Embed(
                     title="🏛️ Einbürgerungsantrag",
                     description=f"{interaction.user.mention} möchte sich einbürgern\n**Grund:** Staatsbürgerschaft",
                     color=discord.Color.blue()
                 )
 
-                # Ticket-Management-View hinzufügen
                 view = self.cog.TicketManagementView(self.cog)
                 await ticket_channel.send(embed=embed, view=view)
 
@@ -121,7 +112,6 @@ class TicketSystem(commands.Cog):
             self.claimed = True
             button.disabled = True
 
-            # Embed aktualisieren
             message = interaction.message
             embed = message.embeds[0]
             embed.add_field(
@@ -131,10 +121,6 @@ class TicketSystem(commands.Cog):
             )
 
             await interaction.response.edit_message(embed=embed, view=self)
-            await interaction.followup.send(
-                f"✅ {interaction.user.mention} hat das Ticket übernommen!",
-                ephemeral=True
-            )
 
         @ui.button(label="Ticket schließen", style=discord.ButtonStyle.red, custom_id="close_ticket")
         async def close_ticket(self, interaction: discord.Interaction, button: ui.Button):
@@ -163,7 +149,6 @@ class TicketSystem(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        """Initialisiert das Ticket-System beim Start"""
         if not hasattr(self.bot, 'ticket_setup_done'):
             try:
                 channel = self.bot.get_channel(self.ticket_channel_id)
@@ -176,7 +161,6 @@ class TicketSystem(commands.Cog):
 
     @commands.Cog.listener()
     async def on_interaction(self, interaction: discord.Interaction):
-        """Behandelt Button-Interaktionen"""
         try:
             custom_id = interaction.data.get("custom_id")
 
@@ -198,7 +182,6 @@ class TicketSystem(commands.Cog):
             print(f"Fehler bei Button-Interaktion: {e}")
 
 async def setup(bot):
-    """Cog-Setup mit persistenten Views"""
     try:
         cog = TicketSystem(bot)
         await bot.add_cog(cog)

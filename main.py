@@ -27,6 +27,7 @@ async def on_ready():
     except Exception as e:
         print(f"❌ Sync-Fehler: {e}")
 
+
 async def load_cogs():
     """Lädt alle Cogs aus dem cogs-Ordner"""
     for filename in os.listdir("./cogs"):

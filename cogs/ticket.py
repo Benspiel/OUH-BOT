@@ -15,22 +15,22 @@ TICKET_CATEGORIES = {
     "Stadtrat Bewerbung": {
         "category_id": 1315355000230117490,
         "support_role_id": 1315355000230117490,
-        "description": "Bewerbung für das Stadtrat-Team einreichen 📇"
+        "description": "Bewerbung für das Stadtrat-Team einreichen"
     },
     "Support Bewerbung": {
         "category_id": 1315355000230117490,
         "support_role_id": 1315355000230117490,
-        "description": "Bewerbung für unser Support-Team 📨"
+        "description": "Bewerbung für unser Support-Team"
     },
     "Developer Bewerbung": {
         "category_id": 1315355000230117490,
         "support_role_id": 1315355000230117490,
-        "description": "Bewirb dich als Developer 💻 "
+        "description": "<:developper:1355633326161006682> Bewirb dich als Developer"
     },
     "Eigenes Event": {
         "category_id": 1330568895404441733,
         "support_role_id": 1330568895404441733,
-        "description": "Eigenes Event vorschlagen oder organisieren  🗳️ "
+        "description": "Eigenes Event vorschlagen oder organisieren"
     }
 }
 
@@ -201,6 +201,13 @@ class Ticket(commands.Cog):
         if not self.persistent_views_added:
             self.bot.add_view(PersistentView().add_item(TicketDropdown()))
             self.persistent_views_added = True
+
+    @commands.Cog.listener()
+    async def on_ready(self):
+        print(f"Bot ist online als {self.bot.user}")
+        if not hasattr(self, 'ticket_message_sent'):
+            self.ticket_message_sent = True
+            await self.update_ticket_message()
 
     async def update_ticket_message(self):
         channel = self.bot.get_channel(TICKET_CHANNEL_ID)

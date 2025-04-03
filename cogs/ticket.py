@@ -1,234 +1,206 @@
+import discord
 from discord.ext import commands
 from discord.ui import Select, View, Button
-from discord import ButtonStyle, Interaction, PermissionOverwrite, Embed
-import discord
 import asyncio
 from datetime import datetime
 
-# Konfiguration
-TICKET_CHANNEL_ID = 1338961833997897844  # Ticket-Erstellungs-Channel
-LOG_CHANNEL_ID = 1355552186867908797     # Log-Channel-ID
-CLOSED_CATEGORY_NAME = "🔒 Geschlossene Tickets"
+# KONFIGURATION
+TICKET_CHANNEL_ID = 1338961833997897844  # Ticket-Dropdown-Channel
+LOG_CHANNEL_ID = 1355552186867908797     # Log-Channel
 
-# Kategorien mit individuellen Beschreibungen und Support-Rollen
-TICKET_CATEGORIES = {
-    "Stadtrat Bewerbung": {
-        "category_id": 1315355000230117490,
-        "support_role_id": 1315355000230117490,
-        "description": "Bewerbung für das Stadtrat-Team einreichen"
+# Einstellungen für jede Kategorie
+CATEGORY_SETTINGS = {
+    "event": {
+        "support_role_id": 1259047794446958632,
+        "category_name": "Eigenes Event",
+        "emoji": "🎫",
+        "discord_category_id": 1330568895404441733
     },
-    "Support Bewerbung": {
-        "category_id": 1315355000230117490,
-        "support_role_id": 1315355000230117490,
-        "description": "Bewerbung für unser Support-Team"
-    },
-    "Developer Bewerbung": {
-        "category_id": 1315355000230117490,
-        "support_role_id": 1315355000230117490,
-        "description": "<:developper:1355633326161006682> Bewirb dich als Developer"
-    },
-    "Eigenes Event": {
-        "category_id": 1330568895404441733,
-        "support_role_id": 1330568895404441733,
-        "description": "Eigenes Event vorschlagen oder organisieren"
+    "oberattack": {
+        "support_role_id": 1357297363697402028,
+        "category_name": "Oberattack",
+        "emoji": "🌍",
+        "discord_category_id": 1357070504875266138
     }
 }
 
-class PersistentView(View):
-    def __init__(self):
+class TicketView(View):
+    def __init__(self, bot):
         super().__init__(timeout=None)
+        self.bot = bot
 
-class TicketDropdown(Select):
-    def __init__(self):
-        options = [
+    @discord.ui.select(
+        placeholder="Wählen Sie eine Kategorie aus",
+        custom_id="ticket_category",
+        options=[
             discord.SelectOption(
-                label=category_name,
-                description=category_data["description"],
-                emoji="📩"
+                label=CATEGORY_SETTINGS["event"]["category_name"],
+                value="event",
+                emoji=CATEGORY_SETTINGS["event"]["emoji"]
+            ),
+            discord.SelectOption(
+                label=CATEGORY_SETTINGS["oberattack"]["category_name"],
+                value="oberattack",
+                emoji=CATEGORY_SETTINGS["oberattack"]["emoji"]
             )
-            for category_name, category_data in TICKET_CATEGORIES.items()
         ]
-        super().__init__(
-            placeholder="Ticket-Typ wählen...",
-            options=options,
-            custom_id="persistent_ticket_dropdown",
-            min_values=1,
-            max_values=1
-        )
+    )
+    async def select_callback(self, interaction: discord.Interaction, select: Select):
+        await interaction.response.defer()
 
-    async def callback(self, interaction: Interaction):
-        await interaction.response.send_message("🔄 Ticket wird erstellt...", ephemeral=True)
-        await self.create_ticket(interaction)
-
-    async def create_ticket(self, interaction: Interaction):
+        selected = select.values[0]
+        settings = CATEGORY_SETTINGS[selected]
         guild = interaction.guild
-        user = interaction.user
-        ticket_type = self.values[0]
-        category_data = TICKET_CATEGORIES[ticket_type]
-
-        category = guild.get_channel(category_data["category_id"])
-        support_role = guild.get_role(category_data["support_role_id"])
-
-        if not category or not support_role:
-            await interaction.followup.send("❌ Konfigurationsfehler - Kategorie oder Rolle nicht gefunden!", ephemeral=True)
-            return
-
-        # Geschlossene Kategorie finden/erstellen
-        closed_category = discord.utils.get(guild.categories, name=CLOSED_CATEGORY_NAME)
-        if not closed_category:
-            closed_category = await guild.create_category(CLOSED_CATEGORY_NAME)
-            await closed_category.set_permissions(guild.default_role, view_channel=False)
-
-        # Channel erstellen
-        ticket_channel = await guild.create_text_channel(
-            name=f"{ticket_type[:15]}-{user.display_name[:8]}".lower().replace(" ", "-"),
-            category=category,
-            reason=f"{ticket_type}-Ticket von {user.name}"
-        )
+        creator = interaction.user
 
         # Berechtigungen setzen
-        await ticket_channel.set_permissions(guild.default_role, view_channel=False)
-        await ticket_channel.set_permissions(user, view_channel=True, send_messages=True)
-        await ticket_channel.set_permissions(support_role,
-                                             view_channel=True,
-                                             send_messages=True,
-                                             manage_messages=True)
+        overwrites = {
+            guild.default_role: discord.PermissionOverwrite(read_messages=False),
+            creator: discord.PermissionOverwrite(read_messages=True),
+            guild.get_role(settings["support_role_id"]): discord.PermissionOverwrite(read_messages=True)
+        }
 
-        # Ticket-Embed mit individueller Beschreibung
-        embed = discord.Embed(
-            title=f"{ticket_type} Ticket",
-            description=f"**Erstellt von:** {user.mention}\n"
-                        f"**Zuständiges Team:** {support_role.mention}\n"
-                        f"**Beschreibung:** {category_data['description']}\n"
-                        f"**Status:** Offen",
-            color=0x3498db
+        # Kategorie finden
+        category = guild.get_channel(settings["discord_category_id"])
+        if not category:
+            category = await guild.create_category(settings["category_name"])
+
+        # Ticket-Kanal erstellen
+        ticket_channel = await guild.create_text_channel(
+            name=f"ticket-{creator.display_name}",
+            category=category,
+            overwrites=overwrites
         )
 
-        view = PersistentView()
-        view.add_item(CloseButton())
+        # Embed für das Ticket
+        embed = discord.Embed(
+            title=f"{settings['emoji']} {settings['category_name']} Ticket",
+            color=discord.Color.green()
+        )
+        embed.description = f"**Ersteller:** {creator.mention}\n"
+        embed.description += f"**Kategorie:** {settings['category_name']}\n"
+        embed.description += f"**Kümmert sich um dich:** Niemand"
+
+        # Buttons für das Ticket
+        view = TicketActionsView(self.bot, settings["support_role_id"])
 
         await ticket_channel.send(embed=embed, view=view)
-        await self.send_log(
-            guild,
-            f"🎟️ {ticket_type} Ticket erstellt: {ticket_channel.mention}\n"
-            f"**Von:** {user.mention} | **Zuständig:** {support_role.mention}\n"
-            f"**Beschreibung:** {category_data['description']}"
-        )
 
-    async def send_log(self, guild, message):
-        log_channel = guild.get_channel(LOG_CHANNEL_ID)
+        # Loggen
+        log_channel = self.bot.get_channel(LOG_CHANNEL_ID)
         if log_channel:
-            embed = Embed(
-                description=message,
-                color=0x3498db,
-                timestamp=datetime.now()
+            log_embed = discord.Embed(
+                title="🎫 Ticket eröffnet",
+                description=f"{settings['emoji']} **{settings['category_name']}** Ticket von {creator.mention}",
+                color=discord.Color.green()
             )
-            await log_channel.send(embed=embed)
+            log_embed.add_field(name="Channel", value=ticket_channel.mention, inline=False)
+            log_embed.add_field(name="Kategorie", value=category.name, inline=False)
+            log_embed.timestamp = datetime.now()
+            await log_channel.send(embed=log_embed)
 
-class CloseButton(Button):
-    def __init__(self):
-        super().__init__(
-            style=ButtonStyle.red,
-            label="Schließen",
-            custom_id="persistent_close_ticket"
-        )
+        await interaction.followup.send(f"Dein Ticket wurde erstellt: {ticket_channel.mention}", ephemeral=True)
 
-    async def callback(self, interaction: Interaction):
-        confirm_embed = discord.Embed(
-            title="Ticket wirklich schließen?",
-            description="Sie werden diesen Channel nicht mehr sehen können, aber das zuständige Team behält Zugriff.",
-            color=0xff0000
-        )
+class TicketActionsView(View):
+    def __init__(self, bot, support_role_id):
+        super().__init__(timeout=None)
+        self.bot = bot
+        self.support_role_id = support_role_id
 
-        confirm_view = View()
-        confirm_view.add_item(ConfirmCloseButton())
-        confirm_view.add_item(CancelButton())
+    @discord.ui.button(label="Ticket schließen", style=discord.ButtonStyle.red, custom_id="close_ticket", emoji="🔒")
+    async def close_ticket(self, interaction: discord.Interaction, button: Button):
+        await interaction.response.send_message("Bist du sicher, dass du das Ticket schließen möchtest?", view=ConfirmCloseView(self.bot), ephemeral=True)
 
-        await interaction.response.send_message(embed=confirm_embed, view=confirm_view, ephemeral=True)
+    @discord.ui.button(label="Claim Ticket", style=discord.ButtonStyle.green, custom_id="claim_ticket", emoji="🙋")
+    async def claim_ticket(self, interaction: discord.Interaction, button: Button):
+        # Überprüfen ob der Nutzer die Support-Rolle hat
+        support_role = interaction.guild.get_role(self.support_role_id)
+        if support_role not in interaction.user.roles:
+            await interaction.response.send_message("Nur Mitglieder des Support-Teams können Tickets claimen.", ephemeral=True)
+            return
 
-class ConfirmCloseButton(Button):
-    def __init__(self):
-        super().__init__(
-            style=ButtonStyle.red,
-            label="Bestätigen",
-            custom_id="confirm_close_ticket"
-        )
+        message = interaction.message
+        embed = message.embeds[0]
 
-    async def callback(self, interaction: Interaction):
-        channel = interaction.channel
+        # Embed aktualisieren
+        new_description = []
+        for line in embed.description.split('\n'):
+            if line.startswith("**Kümmert sich um dich:**"):
+                new_description.append(f"**Kümmert sich um dich:** {interaction.user.mention}")
+            else:
+                new_description.append(line)
 
-        # Nur den aktuellen Nutzer unsichtbar machen
-        await channel.set_permissions(interaction.user, view_channel=False)
+        embed.description = '\n'.join(new_description)
 
-        # Ticket-Typ aus Channel-Namen extrahieren
-        ticket_type = channel.name.split("-")[0]
-        category_data = next(
-            (data for name, data in TICKET_CATEGORIES.items()
-             if name.lower().startswith(ticket_type)),
-            None
-        )
+        # Claim-Button deaktivieren
+        self.claim_ticket.disabled = True
+        self.claim_ticket.style = discord.ButtonStyle.gray
 
-        # Log-Eintrag
-        log_msg = f"🔒 {ticket_type.capitalize()} Ticket geschlossen: {channel.mention} von {interaction.user.mention}"
-        if category_data:
-            support_role = interaction.guild.get_role(category_data["support_role_id"])
-            if support_role:
-                log_msg += f" | Zuständig: {support_role.mention}"
+        await message.edit(embed=embed, view=self)
+        await interaction.response.send_message(f"{interaction.user.mention} hat das Ticket übernommen.", ephemeral=False)
 
-        await TicketDropdown().send_log(interaction.guild, log_msg)
-        await interaction.response.send_message(
-            "✅ Der Channel ist jetzt für Sie unsichtbar, bleibt aber für das zuständige Team verfügbar.",
-            ephemeral=True
-        )
+        # Loggen
+        log_channel = self.bot.get_channel(LOG_CHANNEL_ID)
+        if log_channel:
+            log_embed = discord.Embed(
+                title="🙋 Ticket geclaimed",
+                description=f"{interaction.user.mention} kümmert sich nun um das Ticket in {interaction.channel.mention}",
+                color=discord.Color.blue()
+            )
+            log_embed.timestamp = datetime.now()
+            await log_channel.send(embed=log_embed)
 
-class CancelButton(Button):
-    def __init__(self):
-        super().__init__(
-            style=ButtonStyle.gray,
-            label="Abbrechen",
-            custom_id="cancel_close_ticket"
-        )
+class ConfirmCloseView(View):
+    def __init__(self, bot):
+        super().__init__(timeout=None)
+        self.bot = bot
 
-    async def callback(self, interaction: Interaction):
-        await interaction.response.edit_message(content="✅ Aktion abgebrochen", embed=None, view=None)
+    @discord.ui.button(label="Bestätigen", style=discord.ButtonStyle.red, emoji="✅")
+    async def confirm_close(self, interaction: discord.Interaction, button: Button):
+        log_channel = self.bot.get_channel(LOG_CHANNEL_ID)
+        if log_channel:
+            log_embed = discord.Embed(
+                title="🔒 Ticket geschlossen",
+                description=f"Ticket {interaction.channel.mention} wurde von {interaction.user.mention} geschlossen.",
+                color=discord.Color.red()
+            )
+            log_embed.timestamp = datetime.now()
+            await log_channel.send(embed=log_embed)
+
+        await interaction.channel.delete()
+
+    @discord.ui.button(label="Abbrechen", style=discord.ButtonStyle.gray, emoji="❌")
+    async def cancel_close(self, interaction: discord.Interaction, button: Button):
+        await interaction.response.edit_message(content="Ticket-Schließen abgebrochen.", view=None)
 
 class Ticket(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.persistent_views_added = False
-
-    async def setup_hook(self):
-        if not self.persistent_views_added:
-            self.bot.add_view(PersistentView().add_item(TicketDropdown()))
-            self.persistent_views_added = True
 
     @commands.Cog.listener()
     async def on_ready(self):
-        print(f"Bot ist online als {self.bot.user}")
-        if not hasattr(self, 'ticket_message_sent'):
-            self.ticket_message_sent = True
-            await self.update_ticket_message()
+        await self.initialize_ticket_system()
 
-    async def update_ticket_message(self):
-        channel = self.bot.get_channel(TICKET_CHANNEL_ID)
-        if channel:
-            try:
-                async for message in channel.history(limit=10):
-                    if message.author == self.bot.user:
-                        await message.delete()
+    async def initialize_ticket_system(self):
+        ticket_channel = self.bot.get_channel(TICKET_CHANNEL_ID)
+        if ticket_channel:
+            await ticket_channel.purge(limit=None)
 
-                embed = discord.Embed(
-                    title="🎫 Ticket-System",
-                    description="Wähle eine Kategorie aus um ein Ticket zu erstellen:",
-                    color=0x3498db
-                )
-                view = PersistentView()
-                view.add_item(TicketDropdown())
-                await channel.send(embed=embed, view=view)
-            except Exception as e:
-                print(f"Fehler beim Aktualisieren: {e}")
+            embed = discord.Embed(
+                title="🎫 Ticket-System",
+                description="Wählen Sie eine Kategorie aus, um ein Ticket zu erstellen.",
+                color=discord.Color.blue()
+            )
+
+            await ticket_channel.send(embed=embed, view=TicketView(self.bot))
+
+    @commands.command()
+    @commands.has_permissions(administrator=True)
+    async def reset_tickets(self, ctx):
+        """Manuelles Zurücksetzen des Ticket-Systems"""
+        await self.initialize_ticket_system()
+        await ctx.message.delete()
+
 
 async def setup(bot):
-    cog = Ticket(bot)
-    await bot.add_cog(cog)
-    await cog.setup_hook()
+    await bot.add_cog(Ticket(bot))

@@ -56,7 +56,36 @@ class TicketSystem(commands.Cog):
                     color=discord.Color.blue()
                 )
                 view = self.cog.TicketManagementView(self.cog)
+
+                # Zuerst das Embed mit den Buttons senden
                 await ticket_channel.send(embed=embed, view=view)
+
+                # Danach den langen Text senden
+                long_text = """
+Hallo,
+Bitte les dir die Regeln durch und akzeptiere sie,
+Wer nicht mithilft, bzw. gegen Oberüberhausen arbeitet wird ausgeschlossen.
+
+Ohne Discord, gibt es keine Teilnahme am Geschehen.
+
+Wer sich nicht für alle mit verpflichtet und Aufgaben übernimmt muss auf Dauer gehen.
+
+Auf dem Discord ist kein Platz für Hass und Rassismus und wird mit einem permanenten Bann und Ausschluss geandet.
+
+Bitte Schreibe deinen Minecraftnamen in das Ticket damit wir wissen wie du ingame heißt.
+
+Wer Fragen oder Probleme hat, oder sich Einbürgern möchte, kann sich in den entsprechenden Kanälen an den Support wenden (⁠ ⁠support-bewerbungen ⁠einbürgerungen)
+
+Schreibe bitte noch dein Alter in das Ticket.
+
+Wenn du die Regeln gelesen hast antworte mit „Chicken" um diese zu akzeptieren.
+
+-- Wenn du nicht innerhalb 48 Stunden Antwortest wird das Ticket geschlossen -
+
+Der Oberattack Minecraft server wurde geschlossen, es gibt zurzeit keine Möglichkeit darauf zu spielen!
+Unser Discord wird dadurch aber in keiner weise eingeschränkt
+                """
+                await ticket_channel.send(long_text)
 
                 self.cog.tickets[ticket_channel.id] = {
                     "user_id": interaction.user.id,

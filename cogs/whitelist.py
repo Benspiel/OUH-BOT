@@ -7,6 +7,7 @@ import requests
 WHITELIST_FILE = "whitelist.json"
 MOJANG_API_URL = "https://api.mojang.com/users/profiles/minecraft/"
 REQUIRED_ROLE_ID = 1315043449606635621
+WHITELISTED_ROLE_ID = 1357345202959814737  # <- Ersetze mit der tatsächlichen Rollen-ID
 
 def load_whitelist():
     if os.path.exists(WHITELIST_FILE):
@@ -52,6 +53,9 @@ class Whitelist(commands.Cog):
 
         try:
             await discord_user.send(f"Du wurdest mit dem Minecraft-Namen '{minecraft_name}' zur Whitelist hinzugefügt!")
+            rolle = interaction.guild.get_role(WHITELISTED_ROLE_ID)
+            if rolle:
+                await discord_user.add_roles(rolle, reason="Gewhitelistet für Minecraft")
         except discord.Forbidden:
             await interaction.response.send_message(f"Ich konnte {discord_user.mention} keine DM senden. Bitte überprüfe deine Einstellungen.", ephemeral=True)
 

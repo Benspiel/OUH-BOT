@@ -9,7 +9,7 @@ class TicketSystem(commands.Cog):
 
         # Konfiguration
         self.ticket_category_id = 1315353918913515611
-        self.staff_role_id = 1297585996464128163
+        self.staff_role_id = 1315043449606635621
         self.ticket_channel_id = 1345112122442649761
         self.ticket_message_id = None
 

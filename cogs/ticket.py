@@ -21,6 +21,12 @@ CATEGORY_SETTINGS = {
         "category_name": "Oberattack",
         "emoji": "🌍",
         "discord_category_id": 1357070504875266138
+    },
+    "oberattack": {
+        "support_role_id": 1357297363697402028,
+        "category_name": "Oberattack",
+        "emoji": "❓",
+        "discord_category_id": 1355533837379309660
     }
 }
 

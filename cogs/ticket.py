@@ -22,9 +22,9 @@ CATEGORY_SETTINGS = {
         "emoji": "🌍",
         "discord_category_id": 1357070504875266138
     },
-    "oberattack": {
+    "support": {
         "support_role_id": 1357297363697402028,
-        "category_name": "Oberattack",
+        "category_name": "Support",
         "emoji": "❓",
         "discord_category_id": 1355533837379309660
     }
@@ -48,6 +48,11 @@ class TicketView(View):
                 label=CATEGORY_SETTINGS["oberattack"]["category_name"],
                 value="oberattack",
                 emoji=CATEGORY_SETTINGS["oberattack"]["emoji"]
+            ),
+            discord.SelectOption(
+                label=CATEGORY_SETTINGS["support"]["category_name"],
+                value="",
+                emoji=CATEGORY_SETTINGS["support"]["emoji"]
             )
         ]
     )

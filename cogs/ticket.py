@@ -22,11 +22,11 @@ CATEGORY_SETTINGS = {
         "emoji": "🌍",
         "discord_category_id": 1357070504875266138
     },
-    "support": {
-        "support_role_id": 1357297363697402028,
-        "category_name": "Support",
-        "emoji": "❓",
-        "discord_category_id": 1355533837379309660
+    "normal": {
+        "support_role_id": 123456789012345678,  # 👈 Ersetze mit deiner Support-Rollen-ID
+        "category_name": "Normales Ticket",
+        "emoji": "📩",
+        "discord_category_id": 123456789012345678  # 👈 Ersetze mit deiner Kategorie-ID
     }
 }
 
@@ -40,20 +40,11 @@ class TicketView(View):
         custom_id="ticket_category",
         options=[
             discord.SelectOption(
-                label=CATEGORY_SETTINGS["event"]["category_name"],
-                value="event",
-                emoji=CATEGORY_SETTINGS["event"]["emoji"]
-            ),
-            discord.SelectOption(
-                label=CATEGORY_SETTINGS["oberattack"]["category_name"],
-                value="oberattack",
-                emoji=CATEGORY_SETTINGS["oberattack"]["emoji"]
-            ),
-            discord.SelectOption(
-                label=CATEGORY_SETTINGS["support"]["category_name"],
-                value="",
-                emoji=CATEGORY_SETTINGS["support"]["emoji"]
+                label=settings["category_name"],
+                value=key,
+                emoji=settings["emoji"]
             )
+            for key, settings in CATEGORY_SETTINGS.items()
         ]
     )
     async def select_callback(self, interaction: discord.Interaction, select: Select):
@@ -64,26 +55,22 @@ class TicketView(View):
         guild = interaction.guild
         creator = interaction.user
 
-        # Berechtigungen setzen
         overwrites = {
             guild.default_role: discord.PermissionOverwrite(read_messages=False),
             creator: discord.PermissionOverwrite(read_messages=True),
             guild.get_role(settings["support_role_id"]): discord.PermissionOverwrite(read_messages=True)
         }
 
-        # Kategorie finden
         category = guild.get_channel(settings["discord_category_id"])
         if not category:
             category = await guild.create_category(settings["category_name"])
 
-        # Ticket-Kanal erstellen
         ticket_channel = await guild.create_text_channel(
             name=f"ticket-{creator.display_name}",
             category=category,
             overwrites=overwrites
         )
 
-        # Embed für das Ticket
         embed = discord.Embed(
             title=f"{settings['emoji']} {settings['category_name']} Ticket",
             color=discord.Color.green()
@@ -92,12 +79,10 @@ class TicketView(View):
         embed.description += f"**Kategorie:** {settings['category_name']}\n"
         embed.description += f"**Kümmert sich um dich:** Niemand"
 
-        # Buttons für das Ticket
         view = TicketActionsView(self.bot, settings["support_role_id"])
 
         await ticket_channel.send(embed=embed, view=view)
 
-        # Loggen
         log_channel = self.bot.get_channel(LOG_CHANNEL_ID)
         if log_channel:
             log_embed = discord.Embed(
@@ -124,7 +109,6 @@ class TicketActionsView(View):
 
     @discord.ui.button(label="Claim Ticket", style=discord.ButtonStyle.green, custom_id="claim_ticket", emoji="🙋")
     async def claim_ticket(self, interaction: discord.Interaction, button: Button):
-        # Überprüfen ob der Nutzer die Support-Rolle hat
         support_role = interaction.guild.get_role(self.support_role_id)
         if support_role not in interaction.user.roles:
             await interaction.response.send_message("Nur Mitglieder des Support-Teams können Tickets claimen.", ephemeral=True)
@@ -133,7 +117,6 @@ class TicketActionsView(View):
         message = interaction.message
         embed = message.embeds[0]
 
-        # Embed aktualisieren
         new_description = []
         for line in embed.description.split('\n'):
             if line.startswith("**Kümmert sich um dich:**"):
@@ -143,14 +126,12 @@ class TicketActionsView(View):
 
         embed.description = '\n'.join(new_description)
 
-        # Claim-Button deaktivieren
         self.claim_ticket.disabled = True
         self.claim_ticket.style = discord.ButtonStyle.gray
 
         await message.edit(embed=embed, view=self)
         await interaction.response.send_message(f"{interaction.user.mention} hat das Ticket übernommen.", ephemeral=False)
 
-        # Loggen
         log_channel = self.bot.get_channel(LOG_CHANNEL_ID)
         if log_channel:
             log_embed = discord.Embed(
@@ -211,7 +192,6 @@ class Ticket(commands.Cog):
         """Manuelles Zurücksetzen des Ticket-Systems"""
         await self.initialize_ticket_system()
         await ctx.message.delete()
-
 
 async def setup(bot):
     await bot.add_cog(Ticket(bot))

@@ -23,10 +23,10 @@ CATEGORY_SETTINGS = {
         "discord_category_id": 1357070504875266138
     },
     "normal": {
-        "support_role_id": 123456789012345678,  # 👈 Ersetze mit deiner Support-Rollen-ID
+        "support_role_id": 1259047794446958632,
         "category_name": "Normales Ticket",
         "emoji": "📩",
-        "discord_category_id": 123456789012345678  # 👈 Ersetze mit deiner Kategorie-ID
+        "discord_category_id": 1355533837379309660
     }
 }
 

@@ -182,4 +182,3 @@ async def setup(bot):
     bot.add_view(cog.TicketButtonView(cog))
     bot.add_view(cog.TicketManagementView(cog))
 
-#test

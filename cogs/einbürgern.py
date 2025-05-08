@@ -176,38 +176,6 @@ Unser Discord wird dadurch aber in keiner Weise eingeschränkt.
 
         print("✅ Ticket-System erfolgreich gestartet!")
 
-    @commands.Cog.listener()
-    async def on_message(self, message: discord.Message):
-        if message.author.bot:
-            return
-
-        ticket = self.tickets.get(message.channel.id)
-        if not ticket:
-            return
-
-        if message.author.id != ticket["user_id"]:
-            return
-
-        claimed_by = None
-        async for msg in message.channel.history(limit=50):
-            if msg.embeds:
-                embed = msg.embeds[0]
-                for field in embed.fields:
-                    if field.name == "Kümmert sich um dich:":
-                        name = field.value.replace("@", "").strip()
-                        claimed_by = discord.utils.get(message.guild.members, name=name)
-                        break
-            if claimed_by:
-                break
-
-        if claimed_by:
-            mention_target = claimed_by.mention
-        else:
-            role = message.guild.get_role(self.staff_role_id)
-            mention_target = role.mention if role else "@Support"
-
-        await message.channel.send(f"{mention_target} Es wurde das Codewort geschrieben!")
-
 async def setup(bot):
     cog = TicketSystem(bot)
     await bot.add_cog(cog)

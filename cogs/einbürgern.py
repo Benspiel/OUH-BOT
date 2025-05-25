@@ -88,27 +88,24 @@ class TicketSystem(commands.Cog):
 
                 rules_text = f"""
 Hallo,
-Bitte les dir die Regeln durch und akzeptiere sie,
+Bitte lies dir die Regeln durch und akzeptiere sie:
 Wer nicht mithilft, bzw. gegen Oberüberhausen arbeitet wird ausgeschlossen.
 
-Ohne Discord, gibt es keine Teilnahme am Geschehen.
+Ohne Discord gibt es keine Teilnahme am Geschehen.
 
 Wer sich nicht für alle mit verpflichtet und Aufgaben übernimmt muss auf Dauer gehen.
 
-Auf dem Discord ist kein Platz für Hass und Rassismus und wird mit einem permanenten Bann und Ausschluss geandet.
+Auf dem Discord ist kein Platz für Hass und Rassismus und wird mit einem permanenten Bann und Ausschluss geahndet.
 
 Bitte schreibe deinen Minecraftnamen in das Ticket, damit wir wissen, wie du ingame heißt.
 
 Wer Fragen oder Probleme hat, oder sich einbürgern möchte, kann sich in den entsprechenden Kanälen an den Support wenden (⁠ ⁠support-bewerbungen ⁠einbürgerungen)
 
-Schreibe bitte noch dein Alter in das Ticket.
+Schreibe bitte noch dein Alter in das Ticket und woher du den Server gefunden hast.
 
 Wenn du die Regeln gelesen hast, antworte mit „{chosen_word}“ um diese zu akzeptieren.
 
--- Wenn du nicht innerhalb 48 Stunden antwortest, wird das Ticket geschlossen -
-
-Der Oberattack Minecraft Server wurde geschlossen, es gibt zurzeit keine Möglichkeit darauf zu spielen!
-Unser Discord wird dadurch aber in keiner Weise eingeschränkt.
+-- Wenn du nicht innerhalb 48 Stunden antwortest, wird das Ticket geschlossen --
 """
                 await ticket_channel.send(rules_text)
 
